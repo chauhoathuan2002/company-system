@@ -1,0 +1,128 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from data import get_conn
+
+from human_resource import router as hr_router
+
+app = FastAPI()
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# ================= HOME =================
+@app.get("/")
+def home():
+    return {"message": "API Running"}
+
+# ================= LOGIN =================
+@app.post("/login")
+def login(data: dict):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT full_name, position
+        FROM employees
+        WHERE employee_code=%s AND password=%s
+    """, (
+        data["employee_code"],
+        data["password"]
+    ))
+
+    user = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if not user:
+        return {
+            "success": False,
+            "message": "Sai tài khoản hoặc mật khẩu"
+        }
+
+    name = user[0]
+    role = user[1]
+
+    # ===== PHÂN QUYỀN GIAO DIỆN =====
+    if role == "nhansu":
+        page = "human_resource"
+
+    elif role  == "kehoach":
+        page = "planning"
+
+    elif role  == "thukho":
+        page = "warehouse"
+
+    elif role == "ketoan":
+        page = "accounting"
+
+    elif role  in ["x1", "x2", "x3", "x4"]:
+        page = "workshop"
+
+    elif role  == "admin":
+        page = "admin"
+
+    else:
+        page = "unknown"
+
+    return {
+        "success": True,
+        "name": name,
+        "role ": role ,
+        "page": page
+    }
+
+# ================= ĐỔI MẬT KHẨU =================
+# THÊM VÀO main.py
+
+@app.post("/change-password")
+def change_password(data: dict):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # kiểm tra tài khoản + mật khẩu cũ
+    cur.execute("""
+        SELECT id FROM employees
+        WHERE employee_code=%s AND password=%s
+    """, (
+        data["employee_code"],
+        data["old_password"]
+    ))
+
+    user = cur.fetchone()
+
+    if not user:
+        cur.close()
+        conn.close()
+        return {
+            "success": False,
+            "message": "Mã nhân viên hoặc mật khẩu cũ sai"
+        }
+
+    # cập nhật mật khẩu mới
+    cur.execute("""
+        UPDATE employees
+        SET password=%s
+        WHERE employee_code=%s
+    """, (
+        data["new_password"],
+        data["employee_code"]
+    ))
+
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    return {
+        "success": True,
+        "message": "Đổi mật khẩu thành công"
+    }
+
+# ================= INCLUDE ROUTER =================
+app.include_router(hr_router)
