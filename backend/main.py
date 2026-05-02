@@ -82,52 +82,50 @@ def login(data: dict):
             "message": str(e)
         }
 # ================= ĐỔI MẬT KHẨU =================
-# THÊM VÀO main.py
-
 @app.post("/change-password")
 def change_password(data: dict):
-    conn = get_conn()
-    cur = conn.cursor()
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
 
-    # kiểm tra tài khoản + mật khẩu cũ
-    cur.execute("""
-    SELECT id FROM employees
-    WHERE employee_code=%s AND password=%s
-""", (
-    data.get("employee_code", "").strip(),
-    data.get("old_password", "").strip()
-))
+        # Lấy dữ liệu và xóa khoảng trắng dư thừa
+        code = str(data.get("employee_code", "")).strip()
+        old_pass = str(data.get("old_password", "")).strip()
+        new_pass = str(data.get("new_password", "")).strip()
 
-    user = cur.fetchone()
+        if not code or not old_pass or not new_pass:
+            return {"success": False, "message": "Thiếu thông tin đổi mật khẩu"}
 
-    if not user:
+        # 1. Kiểm tra tài khoản + mật khẩu cũ
+        cur.execute("""
+            SELECT id FROM employees 
+            WHERE employee_code=%s AND password=%s
+        """, (code, old_pass))
+        
+        user = cur.fetchone()
+
+        if not user:
+            cur.close()
+            conn.close()
+            return {"success": False, "message": "Mã nhân viên hoặc mật khẩu cũ không đúng"}
+
+        # 2. Cập nhật mật khẩu mới
+        cur.execute("""
+            UPDATE employees 
+            SET password=%s 
+            WHERE employee_code=%s
+        """, (new_pass, code))
+
+        conn.commit() # Quan trọng: Phải commit thì mới lưu vào DB
         cur.close()
         conn.close()
-        return {
-            "success": False,
-            "message": "Mã nhân viên hoặc mật khẩu cũ sai"
-        }
 
-    # cập nhật mật khẩu mới
-    cur.execute("""
-        UPDATE employees
-        SET password=%s
-        WHERE employee_code=%s
-    """, (
-        data["new_password"],
-        data["employee_code"]
-    ))
+        return {"success": True, "message": "Đổi mật khẩu thành công"}
 
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
-    return {
-        "success": True,
-        "message": "Đổi mật khẩu thành công"
-    }
-
+    except Exception as e:
+        if 'conn' in locals() and conn:
+            conn.close()
+        return {"success": False, "message": f"Lỗi hệ thống: {str(e)}"}
 # ================= INCLUDE ROUTER =================
 app.include_router(hr_router)
 
