@@ -200,7 +200,7 @@ function FormBox({
 /* ================= COMPONENT CHÍNH ================= */
 
 function HumanResource({ setUser }) {
-  const API = "http://127.0.0.1:8000";
+  const API = "https://company-system-gb59.onrender.com";
   const perPage = 10;
 
   const emptyForm = {
