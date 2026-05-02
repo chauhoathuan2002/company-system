@@ -7,43 +7,54 @@ router = APIRouter()
 
 @router.get("/employees")
 def get_employees():
-    conn = get_conn()
-    cur = conn.cursor()
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
 
-    cur.execute("""
-        SELECT id, employee_code, full_name, workshop,
-               birth_date, cccd, gender, address,
-               education, start_date, contract_end,
-               phone, email, position
-        FROM employees
-        ORDER BY id DESC
-    """)
+        cur.execute("""
+            SELECT id, employee_code, full_name, workshop,
+                   birth_date, cccd, gender, address,
+                   education, start_date, contract_end,
+                   phone, email, position
+            FROM employees
+            ORDER BY id DESC
+        """)
 
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
+        rows = cur.fetchall()
 
-    data = []
-    for r in rows:
-        data.append({
-            "id": r[0],
-            "employee_code": r[1],
-            "full_name": r[2],
-            "workshop": r[3],
-            "birth_date": r[4],
-            "cccd": r[5],
-            "gender": r[6],
-            "address": r[7],
-            "education": r[8],
-            "start_date": r[9],
-            "contract_end": r[10],
-            "phone": r[11],
-            "email": r[12],
-            "position": r[13],
-        })
+        data = []
 
-    return data
+        for r in rows:
+            data.append({
+                "id": r[0],
+                "employee_code": r[1],
+                "full_name": r[2],
+                "workshop": r[3],
+                "birth_date": str(r[4]) if r[4] else "",
+                "cccd": r[5],
+                "gender": r[6],
+                "address": r[7],
+                "education": r[8],
+                "start_date": str(r[9]) if r[9] else "",
+                "contract_end": str(r[10]) if r[10] else "",
+                "phone": r[11],
+                "email": r[12],
+                "position": r[13],
+            })
 
+        cur.close()
+        conn.close()
+
+        return {
+            "success": True,
+            "data": data
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 # ================= THÊM =================
 

@@ -238,9 +238,14 @@ function HumanResource({ setUser }) {
 
   const loadEmployees = async () => {
     try {
-      const res = await fetch(`${API}/employees`);
-      const data = await res.json();
-      setEmployees(data);
+      const res = await fetch(API + "/employees");
+const result = await res.json();
+
+if(result.success){
+   setEmployees(result.data);
+}else{
+   alert(result.error);
+}
     } catch {
       alert("Không tải được dữ liệu");
     }
