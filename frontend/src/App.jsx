@@ -2,7 +2,7 @@ import { useState } from "react";
 import HumanResource from "./pages/HumanResource";
 
 function App() {
-  const API = import.meta.env.VITE_API_URL;
+  const API = "https://company-system-gb59.onrender.com";
 
   const [employee_code, setCode] = useState("");
   const [password, setPassword] = useState("");
