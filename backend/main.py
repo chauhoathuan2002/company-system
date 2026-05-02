@@ -35,7 +35,7 @@ def login(data: dict):
         password = data.get("password", "").strip()
 
         cur.execute("""
-            SELECT full_name, position
+            SELECT full_name, role
             FROM employees
             WHERE employee_code=%s AND password=%s
         """, (code, password))
@@ -91,12 +91,12 @@ def change_password(data: dict):
 
     # kiểm tra tài khoản + mật khẩu cũ
     cur.execute("""
-        SELECT id FROM employees
-        WHERE employee_code=%s AND password=%s
-    """, (
-        data["employee_code"],
-        data["old_password"]
-    ))
+    SELECT id FROM employees
+    WHERE employee_code=%s AND password=%s
+""", (
+    data.get("employee_code", "").strip(),
+    data.get("old_password", "").strip()
+))
 
     user = cur.fetchone()
 
