@@ -25,6 +25,7 @@ def home():
     return {"message": "API Running"}
 
 # ================= LOGIN =================
+# ================= LOGIN =================
 @app.post("/login")
 def login(data: dict):
     try:
@@ -34,75 +35,34 @@ def login(data: dict):
         code = str(data.get("employee_code", "")).strip()
         password = str(data.get("password", "")).strip()
 
-        print("Mã NV nhập:", code)
-        print("Mật khẩu nhập:", password)
-
-        # Kiểm tra có tài khoản không
         cur.execute("""
-            SELECT employee_code, password, full_name, role
+            SELECT full_name, role
             FROM employees
-            WHERE employee_code=%s
-        """, (code,))
+            WHERE employee_code=%s AND password=%s
+        """, (code, password))
 
-        row = cur.fetchone()
-
-        if not row:
-            cur.close()
-            conn.close()
-            return {
-                "success": False,
-                "message": "Không tồn tại mã nhân viên"
-            }
-
-        db_code = row[0]
-        db_pass = row[1]
-        full_name = row[2]
-        role = row[3]
-
-        print("DB Password:", db_pass)
-
-        # So sánh mật khẩu
-        if str(db_pass).strip() != password:
-            cur.close()
-            conn.close()
-            return {
-                "success": False,
-                "message": f"Sai mật khẩu. DB đang là: {db_pass}"
-            }
+        user = cur.fetchone()
 
         cur.close()
         conn.close()
 
-        # Phân quyền
-        if role == "nhansu":
-            page = "human_resource"
-        elif role == "kehoach":
-            page = "planning"
-        elif role == "thukho":
-            page = "warehouse"
-        elif role == "ketoan":
-            page = "accounting"
-        elif role in ["x1", "x2", "x3", "x4"]:
-            page = "workshop"
-        elif role == "admin":
-            page = "admin"
-        else:
-            page = "human_resource"
+        if not user:
+            return {
+                "success": False,
+                "message": "Sai tài khoản hoặc mật khẩu"
+            }
 
+        # ĐÚNG THÌ CHỈ THÔNG BÁO, CHƯA CHUYỂN TRANG
         return {
             "success": True,
-            "message": "Đăng nhập đúng rồi nè",
-            "name": full_name,
-            "role": role,
-            "page": page
+            "message": "Đăng nhập thành công"
         }
 
     except Exception as e:
         return {
             "success": False,
-            "message": f"Lỗi login: {str(e)}"
+            "message": str(e)
         }
-
 # ================= ĐỔI MẬT KHẨU =================
 @app.post("/change-password")
 def change_password(data: dict):
