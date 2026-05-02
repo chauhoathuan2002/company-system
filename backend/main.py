@@ -22,8 +22,55 @@ app.add_middleware(
 # ================= HOME =================
 @app.get("/")
 def home():
-    return {"message": "API Running"}
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
 
+        cur.execute("""
+            SELECT id,
+                   employee_code,
+                   full_name,
+                   password,
+                   role,
+                   workshop,
+                   phone,
+                   email,
+                   position
+            FROM employees
+            ORDER BY id
+        """)
+
+        rows = cur.fetchall()
+
+        data = []
+
+        for r in rows:
+            data.append({
+                "id": r[0],
+                "employee_code": r[1],
+                "full_name": r[2],
+                "password": r[3],
+                "role": r[4],
+                "workshop": r[5],
+                "phone": r[6],
+                "email": r[7],
+                "position": r[8]
+            })
+
+        cur.close()
+        conn.close()
+
+        return {
+            "success": True,
+            "total": len(data),
+            "employees": data
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
 # ================= LOGIN =================
 # ================= LOGIN =================
 @app.post("/login")
