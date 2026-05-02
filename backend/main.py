@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from data import get_conn
-
 from human_resource import router as hr_router
 
 app = FastAPI()
@@ -19,6 +18,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 # ================= HOME =================
 @app.get("/")
 def home():
@@ -31,29 +31,49 @@ def login(data: dict):
         conn = get_conn()
         cur = conn.cursor()
 
-        code = data.get("employee_code", "").strip()
-        password = data.get("password", "").strip()
+        code = str(data.get("employee_code", "")).strip()
+        password = str(data.get("password", "")).strip()
 
+        print("Mã NV nhập:", code)
+        print("Mật khẩu nhập:", password)
+
+        # Kiểm tra có tài khoản không
         cur.execute("""
-            SELECT full_name, role
+            SELECT employee_code, password, full_name, role
             FROM employees
-            WHERE employee_code=%s AND password=%s
-        """, (code, password))
+            WHERE employee_code=%s
+        """, (code,))
 
-        user = cur.fetchone()
+        row = cur.fetchone()
+
+        if not row:
+            cur.close()
+            conn.close()
+            return {
+                "success": False,
+                "message": "Không tồn tại mã nhân viên"
+            }
+
+        db_code = row[0]
+        db_pass = row[1]
+        full_name = row[2]
+        role = row[3]
+
+        print("DB Password:", db_pass)
+
+        # So sánh mật khẩu
+        if str(db_pass).strip() != password:
+            cur.close()
+            conn.close()
+            return {
+                "success": False,
+                "message": f"Sai mật khẩu. DB đang là: {db_pass}"
+            }
 
         cur.close()
         conn.close()
 
-        if not user:
-            return {
-                "success": False,
-                "message": "Sai tài khoản hoặc mật khẩu"
-            }
-
-        name = user[0]
-        role = user[1]
-
+        # Phân quyền
         if role == "nhansu":
             page = "human_resource"
         elif role == "kehoach":
@@ -71,7 +91,8 @@ def login(data: dict):
 
         return {
             "success": True,
-            "name": name,
+            "message": "Đăng nhập đúng rồi nè",
+            "name": full_name,
             "role": role,
             "page": page
         }
@@ -79,8 +100,9 @@ def login(data: dict):
     except Exception as e:
         return {
             "success": False,
-            "message": str(e)
+            "message": f"Lỗi login: {str(e)}"
         }
+
 # ================= ĐỔI MẬT KHẨU =================
 @app.post("/change-password")
 def change_password(data: dict):
@@ -88,44 +110,53 @@ def change_password(data: dict):
         conn = get_conn()
         cur = conn.cursor()
 
-        # Lấy dữ liệu và xóa khoảng trắng dư thừa
         code = str(data.get("employee_code", "")).strip()
         old_pass = str(data.get("old_password", "")).strip()
         new_pass = str(data.get("new_password", "")).strip()
 
         if not code or not old_pass or not new_pass:
-            return {"success": False, "message": "Thiếu thông tin đổi mật khẩu"}
+            return {
+                "success": False,
+                "message": "Thiếu thông tin"
+            }
 
-        # 1. Kiểm tra tài khoản + mật khẩu cũ
         cur.execute("""
-            SELECT id FROM employees 
+            SELECT id FROM employees
             WHERE employee_code=%s AND password=%s
         """, (code, old_pass))
-        
+
         user = cur.fetchone()
 
         if not user:
             cur.close()
             conn.close()
-            return {"success": False, "message": "Mã nhân viên hoặc mật khẩu cũ không đúng"}
+            return {
+                "success": False,
+                "message": "Mật khẩu cũ sai"
+            }
 
-        # 2. Cập nhật mật khẩu mới
         cur.execute("""
-            UPDATE employees 
-            SET password=%s 
+            UPDATE employees
+            SET password=%s
             WHERE employee_code=%s
         """, (new_pass, code))
 
-        conn.commit() # Quan trọng: Phải commit thì mới lưu vào DB
+        conn.commit()
+
         cur.close()
         conn.close()
 
-        return {"success": True, "message": "Đổi mật khẩu thành công"}
+        return {
+            "success": True,
+            "message": "Đổi mật khẩu thành công"
+        }
 
     except Exception as e:
-        if 'conn' in locals() and conn:
-            conn.close()
-        return {"success": False, "message": f"Lỗi hệ thống: {str(e)}"}
+        return {
+            "success": False,
+            "message": f"Lỗi đổi mật khẩu: {str(e)}"
+        }
+
 # ================= INCLUDE ROUTER =================
 app.include_router(hr_router)
 
