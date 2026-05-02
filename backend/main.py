@@ -30,33 +30,41 @@ def login(data: dict):
     conn = get_conn()
     cur = conn.cursor()
 
-    code = data["employee_code"].strip()
-    password = data["password"].strip()
-
     cur.execute("""
-        SELECT employee_code, password, full_name, position
+        SELECT full_name, position
         FROM employees
-        WHERE employee_code=%s
-    """, (code,))
+        WHERE employee_code=%s AND password=%s
+    """, (
+        data["employee_code"].strip(),
+        data["password"].strip()
+    ))
 
-    row = cur.fetchone()
+    user = cur.fetchone()
 
     cur.close()
     conn.close()
 
-    if not row:
-        return {"success": False, "message": "Không tồn tại mã NV"}
-
-    if row[1] != password:
+    if not user:
         return {
             "success": False,
-            "message": f"Sai mật khẩu. DB đang là: {row[1]}"
+            "message": "Sai tài khoản hoặc mật khẩu"
         }
+
+    name = user[0]
+    role = user[1]
+
+    if role == "nhansu":
+        page = "human_resource"
+    elif role == "admin":
+        page = "admin"
+    else:
+        page = "human_resource"
 
     return {
         "success": True,
-        "name": row[2],
-        "page": "human_resource"
+        "name": name,
+        "role": role,
+        "page": page
     }
 # ================= ĐỔI MẬT KHẨU =================
 # THÊM VÀO main.py
