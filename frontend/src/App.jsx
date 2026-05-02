@@ -2,7 +2,7 @@ import { useState } from "react";
 import HumanResource from "./pages/HumanResource";
 
 function App() {
-  const API = "http://127.0.0.1:8000";
+  const API = import.meta.env.VITE_API_URL;
 
   const [employee_code, setCode] = useState("");
   const [password, setPassword] = useState("");
