@@ -197,6 +197,7 @@ function FormBox({
   );
 }
 
+
 /* ================= COMPONENT CHÍNH ================= */
 
 function HumanResource({ setUser }) {
