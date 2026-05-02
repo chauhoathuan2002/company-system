@@ -27,61 +27,60 @@ def home():
 # ================= LOGIN =================
 @app.post("/login")
 def login(data: dict):
-    conn = get_conn()
-    cur = conn.cursor()
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
 
-    cur.execute("""
-        SELECT full_name, position
-        FROM employees
-        WHERE employee_code=%s AND password=%s
-    """, (
-        data["employee_code"],
-        data["password"]
-    ))
+        cur.execute("""
+            SELECT full_name, position
+            FROM employees
+            WHERE employee_code=%s AND password=%s
+        """, (
+            data["employee_code"],
+            data["password"]
+        ))
 
-    user = cur.fetchone()
+        user = cur.fetchone()
 
-    cur.close()
-    conn.close()
+        cur.close()
+        conn.close()
 
-    if not user:
+        if not user:
+            return {
+                "success": False,
+                "message": "Sai tài khoản hoặc mật khẩu"
+            }
+
+        name = user[0]
+        role = user[1]
+
+        if role == "nhansu":
+            page = "human_resource"
+        elif role == "kehoach":
+            page = "planning"
+        elif role == "thukho":
+            page = "warehouse"
+        elif role == "ketoan":
+            page = "accounting"
+        elif role in ["x1", "x2", "x3", "x4"]:
+            page = "workshop"
+        elif role == "admin":
+            page = "admin"
+        else:
+            page = "unknown"
+
         return {
-            "success": False,
-            "message": "Sai tài khoản hoặc mật khẩu"
+            "success": True,
+            "name": name,
+            "role": role,
+            "page": page
         }
 
-    name = user[0]
-    role = user[1]
-
-    # ===== PHÂN QUYỀN GIAO DIỆN =====
-    if role == "nhansu":
-        page = "human_resource"
-
-    elif role  == "kehoach":
-        page = "planning"
-
-    elif role  == "thukho":
-        page = "warehouse"
-
-    elif role == "ketoan":
-        page = "accounting"
-
-    elif role  in ["x1", "x2", "x3", "x4"]:
-        page = "workshop"
-
-    elif role  == "admin":
-        page = "admin"
-
-    else:
-        page = "unknown"
-
-    return {
-        "success": True,
-        "name": name,
-        "role ": role ,
-        "page": page
-    }
-
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e)
+        }
 # ================= ĐỔI MẬT KHẨU =================
 # THÊM VÀO main.py
 
